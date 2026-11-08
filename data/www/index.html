@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Weather Station</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand"><b>Weather Station</b><span id="clock"></span></div>
+  <div class="session"><span id="sess"></span><button id="ext" title="Reset the idle timer so the station's Wi-Fi stays on">Stay awake</button></div>
+</header>
+<nav>
+  <button data-t="live" class="on">Live</button>
+  <button data-t="hist">History</button>
+  <button data-t="data">Data</button>
+  <button data-t="admin">Admin</button>
+</nav>
+<main>
+  <section id="live">
+    <div id="warn"></div>
+    <h2>Right now</h2>
+    <div class="grid" id="cards"></div>
+    <dl class="facts" id="liveinfo"></dl>
+
+    <div class="panel" id="hazard">
+      <h3>Report a hazard</h3>
+      <form id="riskForm">
+        <label>What do you see?
+          <input type="text" id="riskTag" list="riskTypes" maxlength="32" required placeholder="flooding">
+        </label>
+        <datalist id="riskTypes"><option value="flooding"><option value="strong wind"><option value="landslide"><option value="fallen tree"><option value="power outage"></datalist>
+        <label>Where, and how bad? <span class="opt">optional</span>
+          <textarea id="riskNotes" maxlength="240" rows="2" placeholder="Knee-deep water at the creek on Rizal St."></textarea>
+        </label>
+        <div class="actions"><button type="submit" class="primary" id="riskSubmit">Save report</button><span class="status" id="riskStatus"></span></div>
+      </form>
+      <p class="note">Only report what you really see. The station saves the weather of the hours before, and warns when it looks the same again. Reports cannot be deleted.</p>
+      <h4>Recent reports</h4>
+      <div id="riskEvents" class="muted">Loading…</div>
+    </div>
+  </section>
+
+  <section id="hist" hidden>
+    <h2>History</h2>
+    <div class="controls">
+      <label>Time
+        <select id="range">
+          <option value="21600">Last 6 hours</option>
+          <option value="86400" selected>Last 24 hours</option>
+          <option value="604800">Last 7 days</option>
+          <option value="2592000">Last 30 days</option>
+          <option value="7776000">Last 90 days</option>
+          <option value="31622400">Last year</option>
+        </select>
+      </label>
+      <fieldset class="checks" id="metrics">
+        <legend>Show</legend>
+        <label><input type="checkbox" value="temp" checked> Temperature</label>
+        <label><input type="checkbox" value="humidity"> Humidity</label>
+        <label><input type="checkbox" value="pres"> Pressure</label>
+        <label><input type="checkbox" value="wind"> Wind</label>
+        <label><input type="checkbox" value="rain"> Rain</label>
+        <label><input type="checkbox" value="batt"> Power</label>
+      </fieldset>
+      <div class="actions"><button id="exp_png">Save image</button><button id="exp_csv">Save data (CSV)</button></div>
+    </div>
+    <p class="status" id="hsum"></p>
+    <div id="charts"></div>
+  </section>
+
+  <section id="data" hidden>
+    <h2>Data</h2>
+    <div class="panel">
+      <h3>Download a date range</h3>
+      <div class="row">
+        <label>From <input type="date" id="d_from"></label>
+        <label>To <input type="date" id="d_to"></label>
+        <button id="d_go" class="primary">Download CSV</button>
+      </div>
+      <p class="note">One row every 5 minutes. Every download includes the station's location (lat, lon) once it is set in Admin.</p>
+    </div>
+    <div class="panel">
+      <h3>Daily files</h3>
+      <p id="sdinfo" class="muted"></p>
+      <table id="files"></table>
+    </div>
+  </section>
+
+  <section id="admin" hidden></section>
+</main>
+<footer class="muted">Admin password: keep a written copy somewhere safe. The station never displays it.</footer>
+<div id="toast" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>
