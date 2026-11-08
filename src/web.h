@@ -79,7 +79,7 @@ static void handleRiskList(Req* r) {
     }
     if (f) f.close();
   }
-  response->print("]}");
+  response->print(authCheck(r) ? "],\"admin\":true}" : "],\"admin\":false}");
   r->send(response);
 }
 
@@ -109,6 +109,16 @@ static void handleRiskLog(Req* r) {
   response["ok"] = true;
   response["ts"] = loggedAt;
   sendDoc(r, response);
+}
+
+static void handleRiskDelete(Req* r) {
+  if (!needAdmin(r)) return;
+  if (!hasP(r, "ts") || !hasP(r, "tag")) { jerr(r, 400, "ts and tag required"); return; }
+  int rc = riskDeleteEvent((uint32_t)P(r, "ts").toInt(), P(r, "tag"));
+  if (rc < 0) { jerr(r, 503, sdOk ? "SD busy or write failed" : "SD card not available"); return; }
+  if (rc == 0) { jerr(r, 404, "report not found"); return; }
+  riskCacheReady = false;
+  jok(r);
 }
 
 // ------------------------------------------------------------ file streaming
@@ -359,6 +369,7 @@ static void webInit() {
 
   server.on("/api/risks", HTTP_GET, handleRiskList);
   server.on("/api/risks/log", HTTP_POST, handleRiskLog);
+  server.on("/api/risks/delete", HTTP_POST, handleRiskDelete);
   server.on("/api/history", HTTP_GET, handleHistory);
 
   server.on("/api/files", HTTP_GET, [](Req* r) {

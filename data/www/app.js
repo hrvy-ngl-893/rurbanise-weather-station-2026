@@ -129,16 +129,22 @@ async function loadRiskEvents() {
   if (!box) return;
   const j = await api('/api/risks');
   if (!j._ok) { box.textContent = j.error || 'Could not load reports'; return; }
-  const events = (j.events || []).slice().reverse();
+  const events = (j.events || []).slice().reverse(), admin = !!j.admin;
   box.className = events.length ? '' : 'muted';
   box.innerHTML = events.length
-    ? '<table><tr><th>When</th><th>Hazard</th><th>Rain 3 h</th></tr>' + events.map(e => {
+    ? '<table><tr><th>When</th><th>Hazard</th><th>Rain 3 h</th>' + (admin ? '<th></th>' : '') + '</tr>' + events.map(e => {
         const w3 = (e.windows || [])[0] || {};
         return '<tr><td>' + esc(new Date(e.ts * 1000).toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'})) +
           '</td><td><b>' + esc(e.tag) + '</b>' + (e.notes ? '<br><span class="muted">' + esc(e.notes) + '</span>' : '') +
-          '</td><td>' + num(w3.rain_mm, 1) + ' mm</td></tr>';
+          '</td><td>' + num(w3.rain_mm, 1) + ' mm</td>' +
+          (admin ? '<td><button type="button" class="del" data-ts="' + e.ts + '" data-tag="' + esc(e.tag) + '">Delete</button></td>' : '') + '</tr>';
       }).join('') + '</table>'
     : 'No reports yet.';
+  box.querySelectorAll('button.del').forEach(b => b.onclick = async () => {
+    if (!confirm('Delete the "' + b.dataset.tag + '" report? The station stops comparing the weather with it. This cannot be undone.')) return;
+    const r = await act(b, $('#riskDelStatus'), 'Deleting…', () => api('/api/risks/delete', {ts: b.dataset.ts, tag: b.dataset.tag}), 'Report deleted');
+    if (r._ok) { await loadRiskEvents(); pollLive(); }
+  });
 }
 
 $('#riskForm').onsubmit = async e => {
@@ -411,7 +417,7 @@ async function loadAdmin() {
   A.innerHTML = '<p class="status busy">Asking the station…</p>';
   const s = await api('/api/session');
   if (!s._ok) { A.innerHTML = '<p class="status err">' + esc(s.error || 'Could not reach station') + '</p>'; return; }
-  isAdmin = !!s.admin;
+  isAdmin = !!s.admin; riskListAt = 0;
   clearInterval(reminderTimer);
   if (s.admin) { renderAdmin(); reminderTimer = setInterval(() => toast(REMIND), 600000); return; }
   const msg = s.reset_msg ? '<div class="banner">' + esc(s.reset_msg) + '</div>' : '';

@@ -15,6 +15,7 @@ h3{font-size:.78em;letter-spacing:.08em;text-transform:uppercase;margin:0 0 .7em
 h4{font-size:.9em;margin:1.1em 0 .4em}
 button,input,select,textarea{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);padding:.45em .65em;border-radius:2px}
 button{cursor:pointer;font-weight:600}button.primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+button.del{font-size:.85em;padding:.25em .55em;color:var(--bad)}
 button:disabled{opacity:.55;cursor:progress}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
 .panel{border:1px solid var(--line);background:var(--panel);padding:.8em .9em;margin:1em 0}

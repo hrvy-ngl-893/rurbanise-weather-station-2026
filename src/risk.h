@@ -6,6 +6,7 @@
 #include "sensors.h"
 
 static const char* RISK_FILE = "/hazards.jsonl";
+static const char* RISK_TMP = "/hazards.tmp";
 static const uint8_t RISK_WINDOWS = 3;
 static const uint8_t RISK_LIST_LIMIT = 20;
 static const size_t RISK_LINE_SIZE = 2048;
@@ -189,6 +190,36 @@ static bool riskAppendEvent(const String& encoded) {
   f.flush();
   f.close();
   return written == encoded.length() + 2;
+}
+
+// Removes the first report with this time and hazard type by rewriting the file without it.
+// Returns 1 deleted, 0 not found, -1 SD error.
+static int riskDeleteEvent(uint32_t ts, const String& tag) {
+  if (!sdOk) return -1;
+  SdLock lock;
+  if (!lock.ok) return -1;
+  File in = SD.open(RISK_FILE, FILE_READ);
+  if (!in) return 0;
+  File out = SD.open(RISK_TMP, FILE_WRITE);
+  if (!out) { in.close(); return -1; }
+  bool found = false, ok = true;
+  char line[RISK_LINE_SIZE];
+  while (in.available()) {
+    int n = in.readBytesUntil('\n', line, sizeof(line) - 1);
+    while (n && line[n - 1] == '\r') n--;
+    line[n] = 0;
+    if (!n) continue;
+    if (!found) {
+      JsonDocument e;
+      if (!deserializeJson(e, line) && (uint32_t)(e["ts"] | 0UL) == ts && tag == (e["tag"] | "")) { found = true; continue; }
+    }
+    if (out.println(line) != (size_t)n + 2) { ok = false; break; }
+  }
+  in.close();
+  out.close();
+  if (!ok || !found) { SD.remove(RISK_TMP); return ok ? 0 : -1; }
+  if (!SD.remove(RISK_FILE) || !SD.rename(RISK_TMP, RISK_FILE)) return -1;
+  return 1;
 }
 
 static float riskProgress(float current, float event, float minimum, bool negative = false) {
