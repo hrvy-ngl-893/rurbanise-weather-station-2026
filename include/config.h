@@ -17,7 +17,7 @@
 #define PIN_VANE_S      13
 #define PIN_VANE_W      4
 #define PIN_DHT22       16   // DHT22 data (GPIO16 is available on ESP32-WROOM boards)
-#define PIN_VSENSE      34   // ADC1: supply sense. USB mode: ESP32 5V/VIN pin via 200k/100k divider.
+#define PIN_VSENSE      34   // ADC1: supply sense. USB mode: ESP32 5V/VIN pin via a 100k/100k divider.
                              // Solar mode: the 18650 at the TP4056 OUT+ via the same divider.
 
 // Optional switched rail for anemometer + vane sensors. Without a gate,
@@ -26,7 +26,8 @@
 #define SENSOR_PWR_ON   HIGH
 
 #define VANE_ACTIVE_LEVEL LOW      // level a Hall sensor outputs when the magnet is over it
-#define VSENSE_DIVIDER    3.0f     // (200k + 100k) / 100k: two 100k in series on top, one 100k to GND
+#define VSENSE_DIVIDER    2.0f     // (100k + 100k) / 100k: one 100k from 5V to GPIO34, one 100k from GPIO34 to GND
+                                   // (until 9 Nov 2026: 3.0, for 200k on top). 5 V reads as 2.5 V at the pin.
 
 // ---------------- Power source ----------------
 // The station is powered through the ESP32's USB-C port. Admin > "Power source" selects what GPIO34 measures:
