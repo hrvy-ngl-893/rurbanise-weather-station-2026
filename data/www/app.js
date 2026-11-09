@@ -185,7 +185,8 @@ function chart(cv, series, opt) {
   for (let i = 0; i <= 3; i++) {
     const v = y0 + (y1 - y0) * i / 3, y = Y(v);
     c.beginPath(); c.moveTo(L, y); c.lineTo(W - R, y); c.stroke();
-    c.fillText(v.toFixed(Math.abs(y1 - y0) < 1 ? 2 : Math.abs(y1 - y0) < 10 ? 1 : 0), 4, y + 4);
+    const dec = Math.abs(y1 - y0) < 1 ? 2 : Math.abs(y1 - y0) < 10 ? 1 : 0;
+    c.fillText((+v.toFixed(dec)).toFixed(dec), 4, y + 4);   // (+x) turns -0 into 0
   }
   const span = x1 - x0;
   for (let i = 0; i <= 4; i++) {
@@ -259,8 +260,20 @@ function statsText(m, rows) {
   return m.bars ? 'total ' + sum.toFixed(1) + ' ' + m.unit
     : 'min ' + Math.min(...v).toFixed(m.d) + ' · max ' + Math.max(...v).toFixed(m.d) + ' · avg ' + (sum / v.length).toFixed(m.d) + ' ' + m.unit;
 }
+// Rain finer than an hour is summed into hourly bars: PAGASA's rainfall levels are mm per hour.
+const rainHourly = () => hStride * hInterval < 3600;
+function rainHours(col) {
+  const h = new Map();
+  for (const r of H) if (r[col] != null) { const k = Math.floor((r[0] - 1) / 3600) * 3600; h.set(k, (h.get(k) || 0) + r[col]); }
+  return [...h].map(([k, v]) => [k + 1800, v]);
+}
+const hhmm = t => new Date(t * 1000).toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'});
 function readout(m, t) {
   if (!H.length) return '';
+  if (m.bars && rainHourly()) {
+    const k = Math.floor(t / 3600) * 3600, v = (rainHours(m.cols[0]).find(p => p[0] === k + 1800) || [0, 0])[1];
+    return new Date(k * 1000).toLocaleDateString([], {month: 'short', day: 'numeric'}) + ', ' + hhmm(k) + '–' + hhmm(k + 3600) + ': ' + num(v, m.d) + ' ' + m.unit;
+  }
   let best = H[0];
   for (const r of H) if (Math.abs(r[0] - t) < Math.abs(best[0] - t)) best = r;
   const when = new Date(best[0] * 1000).toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'});
@@ -284,10 +297,11 @@ function drawHist() {
   }
   box.querySelectorAll('.chart').forEach((el, i, all) => {
     const m = METRICS[el.dataset.k];
-    const series = m.cols.map((col, j) => ({c: colors[j], d: H.map(r => [r[0], r[col]])}));
+    const hourly = m.bars && rainHourly();
+    const series = m.cols.map((col, j) => ({c: colors[j], d: hourly ? rainHours(col) : H.map(r => [r[0], r[col]])}));
     const cv = el.querySelector('canvas');
     cv._geo = chart(cv, series, {bars: m.bars, x0: hFrom, x1: hTo, xlabels: i === all.length - 1, cursor: hCursor});
-    el.querySelector('.ch em').textContent = m.name + (m.bars ? ' per ' + bucketName(hStride * hInterval) : '') + ' (' + m.unit + ')';
+    el.querySelector('.ch em').textContent = m.name + (m.bars ? ' per ' + (hourly ? 'hour' : bucketName(hStride * hInterval)) : '') + ' (' + m.unit + ')';
     el.querySelector('.ch > span').textContent = hCursor != null ? readout(m, hCursor) : statsText(m, H);
   });
 }
